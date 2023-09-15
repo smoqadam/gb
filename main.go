@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"golang.org/x/time/rate"
 	"math"
 	"net/http"
 	"sync"
@@ -13,28 +15,41 @@ func main() {
 	var url string
 	var n int
 	var c int
+	var l int
 	flag.StringVar(&url, "url", "", "-url [URL]")
-	flag.IntVar(&n, "number", 1, "-number [number of requests]")
-	flag.IntVar(&c, "count", 1, "-count [number of concurrent requests]")
+	flag.IntVar(&n, "n", 1, "-n [number of requests]")
+	flag.IntVar(&c, "c", 1, "-c [number of concurrent requests]")
+	flag.IntVar(&l, "l", 10, "-l [limit of concurrent requests per second. default is 10]")
 
 	flag.Parse()
 
-	start(url, n, c)
+	start(url, n, c, l)
 }
 
-func start(url string, n int, c int) {
+func start(url string, n int, c int, limit int) {
 
 	fmt.Println("Start benchmarking: ", url)
-
+	r := rate.NewLimiter(rate.Every(time.Second), limit)
 	durations := make(chan time.Duration, n)
 	errs := make(chan error, c)
+	semaphore := make(chan struct{}, c) // to control how many concurrent request can be run
 
 	var wg sync.WaitGroup
 	wg.Add(n)
 
 	m := NewMetrics()
 	for i := 1; i <= n; i++ {
-		go test(url, durations, errs, &wg)
+		if err := r.Wait(context.Background()); err != nil {
+			continue
+		}
+
+		// program waits if number of tokens in semaphore is at its maximum capacity,
+		// otherwise acquire a token and continue
+		semaphore <- struct{}{}
+		go func() {
+			test(url, durations, errs, &wg)
+			<-semaphore // release a token
+		}()
 	}
 
 	wg.Wait()
@@ -70,6 +85,7 @@ func start(url string, n int, c int) {
 	fmt.Printf("Fastest Time: %v\n", m.FastestTime)
 	fmt.Printf("Slowest Time: %v\n", m.SlowestTime)
 	fmt.Printf("Error Count: %d\n", m.ErrorCount)
+	fmt.Printf("Success Count: %d\n", m.SuccessCount)
 }
 
 func test(url string, durations chan<- time.Duration, errs chan<- error, wg *sync.WaitGroup) {
