@@ -30,7 +30,7 @@ func Start(url string, n int, c int, limit int) {
 		// otherwise acquire a token and continue
 		semaphore <- struct{}{}
 		go func() {
-			test(url, durations, errs, &wg)
+			test(url, durations, errs, &m, &wg)
 			<-semaphore // release a token
 		}()
 	}
@@ -69,9 +69,13 @@ func Start(url string, n int, c int, limit int) {
 	fmt.Printf("Slowest Time: %v\n", m.SlowestTime)
 	fmt.Printf("Error Count: %d\n", m.ErrorCount)
 	fmt.Printf("Success Count: %d\n", m.SuccessCount)
+	fmt.Printf("200: %d\n", m.Response2xx)
+	fmt.Printf("3xx: %d\n", m.Response3xx)
+	fmt.Printf("4xx: %d\n", m.Response4xx)
+	fmt.Printf("5xx: %d\n", m.Response5xx)
 }
 
-func test(url string, durations chan<- time.Duration, errs chan<- error, wg *sync.WaitGroup) {
+func test(url string, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup) {
 	defer wg.Done()
 	start := time.Now()
 	res, err := http.Get(url)
@@ -82,4 +86,21 @@ func test(url string, durations chan<- time.Duration, errs chan<- error, wg *syn
 	}
 	defer res.Body.Close()
 	durations <- elapsed
+
+	metrics.mu.Lock()
+	switch {
+	case res.StatusCode >= 200 && res.StatusCode < 300:
+		metrics.Response2xx++
+		break
+	case res.StatusCode >= 300 && res.StatusCode < 400:
+		metrics.Response3xx++
+		break
+	case res.StatusCode >= 400 && res.StatusCode < 500:
+		metrics.Response4xx++
+		break
+	case res.StatusCode >= 500:
+		metrics.Response5xx++
+		break
+	}
+	metrics.mu.Unlock()
 }
