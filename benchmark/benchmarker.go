@@ -75,6 +75,7 @@ func Start(url string, n int, c int, limit int) {
 	fmt.Printf("3xx: %d\n", m.Response3xx)
 	fmt.Printf("4xx: %d\n", m.Response4xx)
 	fmt.Printf("5xx: %d\n", m.Response5xx)
+	fmt.Printf("Bytes Received: %db\n", m.ContentLength)
 }
 
 func test(url string, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup) {
@@ -91,16 +92,6 @@ func test(url string, durations chan<- time.Duration, errs chan<- error, metrics
 	}
 	defer res.Body.Close()
 	durations <- elapsed
-	metrics.mu.Lock()
-	switch {
-	case res.StatusCode >= 200 && res.StatusCode < 300:
-		metrics.Response2xx++
-	case res.StatusCode >= 300 && res.StatusCode < 400:
-		metrics.Response3xx++
-	case res.StatusCode >= 400 && res.StatusCode < 500:
-		metrics.Response4xx++
-	case res.StatusCode >= 500:
-		metrics.Response5xx++
-	}
-	metrics.mu.Unlock()
+
+	metrics.Update(res)
 }
