@@ -27,3 +27,7 @@ func NewMetrics() Metrics {
 		FastestTime: time.Duration(math.MaxInt64),
 	}
 }
+
+func (m Metrics) Update() {
+
+}

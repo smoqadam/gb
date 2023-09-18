@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const TIMEOUT = 30
+
 func Start(url string, n int, c int, limit int) {
 
 	fmt.Println("Start benchmarking: ", url)
@@ -77,8 +79,11 @@ func Start(url string, n int, c int, limit int) {
 
 func test(url string, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup) {
 	defer wg.Done()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	defer cancel()
 	start := time.Now()
-	res, err := http.Get(url)
+	res, err := http.DefaultClient.Do(req)
 	elapsed := time.Since(start)
 	if err != nil {
 		errs <- err
@@ -86,21 +91,16 @@ func test(url string, durations chan<- time.Duration, errs chan<- error, metrics
 	}
 	defer res.Body.Close()
 	durations <- elapsed
-
 	metrics.mu.Lock()
 	switch {
 	case res.StatusCode >= 200 && res.StatusCode < 300:
 		metrics.Response2xx++
-		break
 	case res.StatusCode >= 300 && res.StatusCode < 400:
 		metrics.Response3xx++
-		break
 	case res.StatusCode >= 400 && res.StatusCode < 500:
 		metrics.Response4xx++
-		break
 	case res.StatusCode >= 500:
 		metrics.Response5xx++
-		break
 	}
 	metrics.mu.Unlock()
 }
