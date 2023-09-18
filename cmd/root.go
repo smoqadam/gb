@@ -13,6 +13,8 @@ var (
 	concurrent int
 	limit      int
 	url        string
+	method     string
+	data       string
 	timeout    int
 	headers    []string
 	rootCmd    = &cobra.Command{
@@ -22,12 +24,14 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("N:", number)
 			config := benchmark.Config{
-				Concurrent: concurrent,
-				Number:     number,
-				Limit:      limit,
-				URL:        url,
-				Timeout:    timeout,
-				Headers:    headers,
+				Concurrent:  concurrent,
+				Number:      number,
+				Limit:       limit,
+				URL:         url,
+				Method:      method,
+				Timeout:     timeout,
+				Headers:     headers,
+				RequestBody: []byte(data),
 			}
 			benchmark.Start(config)
 		},
@@ -45,6 +49,8 @@ func init() {
 	rootCmd.Flags().StringVarP(&url, "url", "u", "", "URL to benchmark")
 	rootCmd.MarkFlagRequired("url")
 
+	rootCmd.Flags().StringVarP(&method, "method", "m", "GET", "request method [GET, POST, PUT, PATCH, DELETE]")
+	rootCmd.Flags().StringVarP(&data, "data", "d", "", "request body")
 	rootCmd.Flags().IntVarP(&number, "number", "n", 10, "number of request")
 	rootCmd.Flags().IntVarP(&limit, "limit", "l", 10, "limit of concurrent requests per second")
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "number of concurrent request")

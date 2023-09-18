@@ -1,6 +1,7 @@
 package benchmark
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"golang.org/x/time/rate"
@@ -81,7 +82,7 @@ func executeRequest(c Config, durations chan<- time.Duration, errs chan<- error,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(c.Timeout))
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", c.URL, nil)
+	req, err := http.NewRequestWithContext(ctx, c.Method, c.URL, bytes.NewBuffer(c.RequestBody))
 
 	for _, h := range c.Headers {
 		key, value, err := parseHeader(h)
