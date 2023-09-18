@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"golang.org/x/time/rate"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
 
 const TIMEOUT = 30
 
-func Start(url string, n int, c int, limit int) {
+func Start(url string, n int, c int, limit int, headers []string) {
 
 	fmt.Println("Start benchmarking: ", url)
 	r := rate.NewLimiter(rate.Every(time.Second), limit)
@@ -32,7 +33,7 @@ func Start(url string, n int, c int, limit int) {
 		// otherwise acquire a token and continue
 		semaphore <- struct{}{}
 		go func() {
-			test(url, durations, errs, &m, &wg)
+			test(url, durations, errs, &m, &wg, headers)
 			<-semaphore // release a token
 		}()
 	}
@@ -78,11 +79,22 @@ func Start(url string, n int, c int, limit int) {
 	fmt.Printf("Bytes Received: %db\n", m.ContentLength)
 }
 
-func test(url string, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup) {
+func test(url string, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup, headers []string) {
 	defer wg.Done()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+
+	for _, h := range headers {
+		key, value, err := parseHeader(h)
+		if err != nil {
+			errs <- err
+			continue
+		}
+		req.Header.Set(key, value)
+	}
+
 	start := time.Now()
 	res, err := http.DefaultClient.Do(req)
 	elapsed := time.Since(start)
@@ -90,8 +102,16 @@ func test(url string, durations chan<- time.Duration, errs chan<- error, metrics
 		errs <- err
 		return
 	}
+
 	defer res.Body.Close()
 	durations <- elapsed
-
 	metrics.Update(res)
+}
+
+func parseHeader(header string) (key, value string, err error) {
+	parts := strings.SplitN(header, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid header format: %s", header)
+	}
+	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), nil
 }

@@ -34,6 +34,7 @@ func NewMetrics() Metrics {
 func (m *Metrics) Update(res *http.Response) {
 
 	m.mu.Lock()
+
 	b, _ := io.ReadAll(res.Body)
 	m.ContentLength += int64(len(b))
 

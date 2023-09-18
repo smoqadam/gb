@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -17,13 +14,14 @@ var (
 	concurrent int
 	limit      int
 	url        string
+	headers    []string
 	rootCmd    = &cobra.Command{
 		Use:   "gb",
 		Short: "A benchmarking tool",
 		Long:  `An experimental HTTP benchmarking tool written in Go`,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("N:", number)
-			benchmark.Start(url, number, concurrent, limit)
+			benchmark.Start(url, number, concurrent, limit, headers)
 		},
 	}
 )
@@ -42,4 +40,6 @@ func init() {
 	rootCmd.Flags().IntVarP(&number, "number", "n", 10, "number of request")
 	rootCmd.Flags().IntVarP(&limit, "limit", "l", 10, "limit of concurrent requests per second")
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 1, "number of concurrent request")
+
+	rootCmd.Flags().StringSliceVarP(&headers, "header", "H", nil, "Header to pass to request. This flag can be used multiple times")
 }
