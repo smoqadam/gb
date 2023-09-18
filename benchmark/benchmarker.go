@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-func Start(config Config) {
-	fmt.Println("Start benchmarking: ", config)
+func Start(config Config) *Metrics {
+	fmt.Println("Start benchmarking: ", config.URL)
 	r := rate.NewLimiter(rate.Every(time.Second), config.Limit)
 	durations := make(chan time.Duration, config.Number)
 	errs := make(chan error, config.Concurrent)
@@ -63,18 +63,7 @@ func Start(config Config) {
 	for range errs {
 		m.ErrorCount++
 	}
-
-	fmt.Printf("Average Time: %v\n", m.AverageTime)
-	fmt.Printf("Total Time: %v\n", m.TotalTime)
-	fmt.Printf("Fastest Time: %v\n", m.FastestTime)
-	fmt.Printf("Slowest Time: %v\n", m.SlowestTime)
-	fmt.Printf("Error Count: %d\n", m.ErrorCount)
-	fmt.Printf("Success Count: %d\n", m.SuccessCount)
-	fmt.Printf("200: %d\n", m.Response2xx)
-	fmt.Printf("3xx: %d\n", m.Response3xx)
-	fmt.Printf("4xx: %d\n", m.Response4xx)
-	fmt.Printf("5xx: %d\n", m.Response5xx)
-	fmt.Printf("Bytes Received: %db\n", m.ContentLength)
+	return &m
 }
 
 func executeRequest(c Config, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup) {

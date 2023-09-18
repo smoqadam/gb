@@ -10,17 +10,17 @@ import (
 
 type Metrics struct {
 	mu            sync.Mutex
-	FastestTime   time.Duration
-	SlowestTime   time.Duration
-	AverageTime   time.Duration
-	TotalTime     time.Duration
-	ErrorCount    int
-	SuccessCount  int
-	Response2xx   int // Count of 2xx responses
-	Response3xx   int // Count of 3xx responses
-	Response4xx   int // Count of 4xx responses
-	Response5xx   int // Count of 5xx responses
-	ContentLength int64
+	FastestTime   time.Duration `json:"fastest_time"`
+	SlowestTime   time.Duration `json:"slowest_time"`
+	AverageTime   time.Duration `json:"average_time"`
+	TotalTime     time.Duration `json:"total_time"`
+	ErrorCount    int           `json:"error_count"`
+	SuccessCount  int           `json:"success_count"`
+	Response2xx   int           `json:"response_2_xx"` // Count of 2xx responses
+	Response3xx   int           `json:"response_3_xx"` // Count of 3xx responses
+	Response4xx   int           `json:"response_4_xx"` // Count of 4xx responses
+	Response5xx   int           `json:"response_5_xx"` // Count of 5xx responses
+	ContentLength int64         `json:"content_length"`
 }
 
 func NewMetrics() Metrics {

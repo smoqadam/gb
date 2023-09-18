@@ -3,21 +3,23 @@ package cmd
 import (
 	"fmt"
 	"github.com/smoqadam/gb/benchmark"
+	"github.com/smoqadam/gb/output"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	number     int
-	concurrent int
-	limit      int
-	url        string
-	method     string
-	data       string
-	timeout    int
-	headers    []string
-	rootCmd    = &cobra.Command{
+	number       int
+	concurrent   int
+	limit        int
+	url          string
+	method       string
+	data         string
+	outputFormat string
+	timeout      int
+	headers      []string
+	rootCmd      = &cobra.Command{
 		Use:   "gb",
 		Short: "A benchmarking tool",
 		Long:  `An experimental HTTP benchmarking tool written in Go`,
@@ -33,7 +35,19 @@ var (
 				Headers:     headers,
 				RequestBody: []byte(data),
 			}
-			benchmark.Start(config)
+
+			metrics := benchmark.Start(config)
+			exporter, err := output.NewExporter(outputFormat)
+			if err != nil {
+				panic(err)
+			}
+
+			b, err := exporter.Export(metrics)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println(string(b))
 		},
 	}
 )
@@ -48,6 +62,8 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVarP(&url, "url", "u", "", "URL to benchmark")
 	rootCmd.MarkFlagRequired("url")
+
+	rootCmd.Flags().StringVarP(&outputFormat, "output", "O", "std", "output format [json, html, csv]")
 
 	rootCmd.Flags().StringVarP(&method, "method", "m", "GET", "request method [GET, POST, PUT, PATCH, DELETE]")
 	rootCmd.Flags().StringVarP(&data, "data", "d", "", "request body")
