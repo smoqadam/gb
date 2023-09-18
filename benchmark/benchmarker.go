@@ -10,21 +10,18 @@ import (
 	"time"
 )
 
-const TIMEOUT = 30
-
-func Start(url string, n int, c int, limit int, headers []string) {
-
-	fmt.Println("Start benchmarking: ", url)
-	r := rate.NewLimiter(rate.Every(time.Second), limit)
-	durations := make(chan time.Duration, n)
-	errs := make(chan error, c)
-	semaphore := make(chan struct{}, c) // to control how many concurrent request can be run
+func Start(config Config) {
+	fmt.Println("Start benchmarking: ", config)
+	r := rate.NewLimiter(rate.Every(time.Second), config.Limit)
+	durations := make(chan time.Duration, config.Number)
+	errs := make(chan error, config.Concurrent)
+	semaphore := make(chan struct{}, config.Concurrent) // to control how many concurrent request can be run
 
 	var wg sync.WaitGroup
-	wg.Add(n)
+	wg.Add(config.Number)
 
 	m := NewMetrics()
-	for i := 1; i <= n; i++ {
+	for i := 1; i <= config.Number; i++ {
 		if err := r.Wait(context.Background()); err != nil {
 			continue
 		}
@@ -33,7 +30,7 @@ func Start(url string, n int, c int, limit int, headers []string) {
 		// otherwise acquire a token and continue
 		semaphore <- struct{}{}
 		go func() {
-			test(url, durations, errs, &m, &wg, headers)
+			executeRequest(config, durations, errs, &m, &wg)
 			<-semaphore // release a token
 		}()
 	}
@@ -61,7 +58,7 @@ func Start(url string, n int, c int, limit int, headers []string) {
 		m.TotalTime += d
 		m.SuccessCount++
 	}
-	m.AverageTime = m.TotalTime / time.Duration(n)
+	m.AverageTime = m.TotalTime / time.Duration(config.Number)
 	for range errs {
 		m.ErrorCount++
 	}
@@ -79,14 +76,14 @@ func Start(url string, n int, c int, limit int, headers []string) {
 	fmt.Printf("Bytes Received: %db\n", m.ContentLength)
 }
 
-func test(url string, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup, headers []string) {
+func executeRequest(c Config, durations chan<- time.Duration, errs chan<- error, metrics *Metrics, wg *sync.WaitGroup) {
 	defer wg.Done()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(c.Timeout))
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.URL, nil)
 
-	for _, h := range headers {
+	for _, h := range c.Headers {
 		key, value, err := parseHeader(h)
 		if err != nil {
 			errs <- err
