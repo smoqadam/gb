@@ -25,7 +25,6 @@ var (
 		Short: "A benchmarking tool",
 		Long:  `An experimental HTTP benchmarking tool written in Go`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("N:", number)
 			config := benchmark.Config{
 				Concurrent:  concurrent,
 				Number:      number,
@@ -75,7 +74,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&url, "url", "u", "", "URL to benchmark")
 	rootCmd.MarkFlagRequired("url")
 
-	rootCmd.Flags().StringVarP(&outputFormat, "output-format", "o", "std", "output format [json, html, csv]")
+	rootCmd.Flags().StringVarP(&outputFormat, "output-format", "o", "stdout", "output format [json, html, csv]")
 	rootCmd.Flags().StringVarP(&toFile, "output-file", "O", "gb", "output filename format [json, html, csv]")
 
 	rootCmd.Flags().StringVarP(&method, "method", "m", "GET", "request method [GET, POST, PUT, PATCH, DELETE]")

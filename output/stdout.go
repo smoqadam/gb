@@ -5,10 +5,10 @@ import (
 	"github.com/smoqadam/gb/benchmark"
 )
 
-type Cli struct {
+type Stdout struct {
 }
 
-func (c Cli) Export(m *benchmark.Metrics) ([]byte, error) {
+func (c Stdout) Export(m *benchmark.Metrics) ([]byte, error) {
 
 	fmt.Printf("Average Time: %v\n", m.AverageTime)
 	fmt.Printf("Total Time: %v\n", m.TotalTime)
