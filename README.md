@@ -1,15 +1,15 @@
 ## `gb` a HTTP benchmarking tool written in Go
 
-This repo is an attempt to learn more about concurrency in Go. I've used
-ChatGPT-4 in order to get suggestion on my code and give me the 
-simplest answers about questions. 
+This repo is an attempt to learn more about concurrency and Go in general.
+I've used ChatGPT-4 as an instructor for this project. It gave me suggestion on
+code and explained concepts that were unfamiliar to me. 
 
 
 ### Install
 
 Clone the repo and run `go run .` with following options:
 
-```go
+```bash
 Usage:
   gb [flags]
 
@@ -30,7 +30,7 @@ Flags:
 
 example:
 
-```
+```bash
 $ go run . --url https://httpstat.us/Random -n 20 -c 10 -H "Foo: Bar"
 
 Start benchmarking:  https://httpstat.us/Random
